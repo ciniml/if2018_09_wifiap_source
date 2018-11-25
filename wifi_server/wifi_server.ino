@@ -1,13 +1,18 @@
-/**
- * wifi_server.ino
- */
 #include <WiFi.h>
+#include <ESPmDNS.h>
 #include <stdint.h>
 #include <command.hpp>
 
-static const char* AP_SSID = "test_ap";
-static const char* AP_PASSPHRASE = "passphrase";
+//#define USE_SOFTAP
+
+static const char* SERVER_NAME = "test_server";
+static const char* SERVICE_NAME = "esp32_command";
+
+static const char* AP_SSID = "your_ssid";
+static const char* AP_PASSPHRASE = "your_passphrase";
+#ifdef USE_SOFTAP
 static const IPAddress SERVER_ADDRESS(192, 168, 0, 1);
+#endif
 static const uint16_t SERVER_PORT = 80;
 
 static WiFiServer server(SERVER_PORT);
@@ -32,10 +37,20 @@ void setup() {
   Serial.println();
   Serial.print("Configuring access point...");
 
+#ifdef USE_SOFTAP
   // アクセスポイントを初期化
   WiFi.softAPConfig(SERVER_ADDRESS, SERVER_ADDRESS, IPAddress(255, 255, 255, 0));
   WiFi.softAP(AP_SSID, AP_PASSPHRASE, 1, 0, 1);
-  
+#else
+  // 接続先アクセスポイントを設定
+  WiFi.begin(AP_SSID, AP_PASSPHRASE);
+  WiFi.setAutoConnect(true);
+#endif
+
+  // mDNSレスポンダの初期化
+  MDNS.begin(SERVER_NAME);
+  MDNS.addService(SERVICE_NAME, "tcp", SERVER_PORT);
+
   server.begin();
 }
 
